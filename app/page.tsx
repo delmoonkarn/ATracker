@@ -88,12 +88,25 @@ export default function HomePage() {
           loadDiscoverCache(),
           loadHFavorites(),
         ]);
-      setState(loaded ?? defaultState());
+      // Always boot into the current calendar season's schedule. If a season
+      // with that name exists in storage, switch the active season to it; if
+      // not, leave whatever was last active alone (user has nothing matching).
+      let initial = loaded ?? defaultState();
+      const currentName = discoverDefaultRef.name.toLowerCase();
+      const currentMatch = initial.seasons.find(
+        (s) => s.name.trim().toLowerCase() === currentName,
+      );
+      if (currentMatch && currentMatch.id !== initial.activeSeasonId) {
+        initial = { ...initial, activeSeasonId: currentMatch.id };
+      }
+      setState(initial);
       setCollection(loadedCollection);
       setDiscoverCache(loadedDiscover);
       setHFavorites(loadedHFavs);
       setHydrated(true);
     })();
+    // discoverDefaultRef is memoized once; safe to omit from deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
