@@ -29,7 +29,7 @@ Or double-click **`run.bat`**.
 
 - **Schedule** — group anime by day of week, set Thai broadcast time + platform link, today's day is highlighted, aired entries strike through
 - **Discover by Season** — pick any Winter/Spring/Summer/Fall + year, browse top anime, filter by tags, search within results, LRU-cache of last 4 selections
-- **Hentai** — separate page, separate DB table (`hentai_favorites`), independent sort/filter prefs
+- **H** — separate page, separate DB table (`h_favorites`), independent sort/filter prefs
 - **Collection** — Favorites + Interested sections, sort by released date / added date / title / score, tag filter
 - **Import/Export `.xlsx`** — schedule and collection each have their own format with `=IMAGE()` formulas and Thai day colors
 - **Confirmation dialogs** styled to match the theme (no browser popups)
@@ -50,8 +50,8 @@ components/
   AddToCollectionModal.tsx     # search → add to collection
   DiscoverPage.tsx             # season picker + tag filter + grid, cache-aware
   DiscoverCard.tsx             # discover card (cover + meta + add/favorite/interested)
-  HentaiDiscoverPage.tsx       # hentai-specific: status/tag/sort filters
-  HentaiFavoritesPage.tsx      # the separate hentai favorites view
+  HentaiDiscoverPage.tsx       # H-specific: status/tag/sort filters
+  HentaiFavoritesPage.tsx      # the separate H favorites view
   CollectionPage.tsx           # Favorites / Interested with sort + tag filter + I/O
   ConfirmDialog.tsx            # <ConfirmProvider> + useConfirm() hook
   ManageSeasonsModal.tsx       # batch delete seasons
