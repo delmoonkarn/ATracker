@@ -3,8 +3,8 @@ import type {
   AppState,
   CollectionEntry,
   DiscoverCache,
-  HentaiFavoriteEntry,
-  HentaiPrefs,
+  HFavoriteEntry,
+  HPrefs,
 } from './types';
 
 // Storage layer notes
@@ -167,18 +167,18 @@ export function saveTags(tags: AnilistTag[]): void {
   scheduleSave('tags', tags);
 }
 
-export async function loadHentaiPrefs(): Promise<HentaiPrefs | null> {
-  return loadOrMigrate<HentaiPrefs>('h-prefs');
+export async function loadHPrefs(): Promise<HPrefs | null> {
+  return loadOrMigrate<HPrefs>('h-prefs');
 }
 
-export function saveHentaiPrefs(prefs: HentaiPrefs): void {
+export function saveHPrefs(prefs: HPrefs): void {
   scheduleSave('h-prefs', prefs);
 }
 
-export async function loadHentaiFavorites(): Promise<HentaiFavoriteEntry[]> {
-  return (await loadOrMigrate<HentaiFavoriteEntry[]>('h-favorites')) ?? [];
+export async function loadHFavorites(): Promise<HFavoriteEntry[]> {
+  return (await loadOrMigrate<HFavoriteEntry[]>('h-favorites')) ?? [];
 }
 
-export function saveHentaiFavorites(items: HentaiFavoriteEntry[]): void {
+export function saveHFavorites(items: HFavoriteEntry[]): void {
   scheduleSave('h-favorites', items);
 }

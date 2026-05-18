@@ -5,33 +5,33 @@ import { AlertTriangle, Flame, Heart, Loader2, Search, X } from 'lucide-react';
 import type {
   AnilistTag,
   DiscoverItem,
-  HentaiDateSort,
-  HentaiPopularitySort,
+  HDateSort,
+  HPopularitySort,
 } from '@/lib/types';
-import { loadHentaiPrefs, saveHentaiPrefs } from '@/lib/storage';
+import { loadHPrefs, saveHPrefs } from '@/lib/storage';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DiscoverCard } from './DiscoverCard';
 import { TagFilterPicker } from './TagFilterPicker';
 import { useConfirm } from './ConfirmDialog';
 
 interface Props {
-  isFavoritedHentai: (anilistId: number) => boolean;
-  onAddHentaiFavorite: (item: DiscoverItem) => void;
-  onRemoveHentaiFavorite: (anilistId: number) => void;
-  hentaiFavoritesCount: number;
+  isFavoritedH: (anilistId: number) => boolean;
+  onAddHFavorite: (item: DiscoverItem) => void;
+  onRemoveHFavorite: (anilistId: number) => void;
+  hFavoritesCount: number;
   onOpenFavorites: () => void;
 }
 
-export function HentaiDiscoverPage({
-  isFavoritedHentai,
-  onAddHentaiFavorite,
-  onRemoveHentaiFavorite,
-  hentaiFavoritesCount,
+export function HDiscoverPage({
+  isFavoritedH,
+  onAddHFavorite,
+  onRemoveHFavorite,
+  hFavoritesCount,
   onOpenFavorites,
 }: Props) {
   const confirm = useConfirm();
-  const [dateSort, setDateSort] = useState<HentaiDateSort>('NEW');
-  const [popularitySort, setPopularitySort] = useState<HentaiPopularitySort>(null);
+  const [dateSort, setDateSort] = useState<HDateSort>('NEW');
+  const [popularitySort, setPopularitySort] = useState<HPopularitySort>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [excludeUnreleased, setExcludeUnreleased] = useState(false);
   const [allTags, setAllTags] = useState<AnilistTag[] | null>(null);
@@ -49,7 +49,7 @@ export function HentaiDiscoverPage({
   // Load saved sort + tag prefs once on mount.
   useEffect(() => {
     (async () => {
-      const prefs = await loadHentaiPrefs();
+      const prefs = await loadHPrefs();
       if (prefs) {
         setDateSort(prefs.dateSort);
         setPopularitySort(prefs.popularitySort);
@@ -64,7 +64,7 @@ export function HentaiDiscoverPage({
   // the defaults would overwrite the user's stored values).
   useEffect(() => {
     if (!prefsLoaded) return;
-    saveHentaiPrefs({
+    saveHPrefs({
       dateSort,
       popularitySort,
       tags: selectedTags,
@@ -112,11 +112,11 @@ export function HentaiDiscoverPage({
 
     (async () => {
       try {
-        const [{ getHentaiAnime }, { toDiscoverItem }] = await Promise.all([
+        const [{ getHAnime }, { toDiscoverItem }] = await Promise.all([
           import('@/lib/anilist'),
           import('@/lib/discover'),
         ]);
-        const result = await getHentaiAnime({
+        const result = await getHAnime({
           page: 1,
           dateSort,
           popularitySort,
@@ -151,11 +151,11 @@ export function HentaiDiscoverPage({
     if (loadingMore || !hasNextPage) return;
     setLoadingMore(true);
     try {
-      const [{ getHentaiAnime }, { toDiscoverItem }] = await Promise.all([
+      const [{ getHAnime }, { toDiscoverItem }] = await Promise.all([
         import('@/lib/anilist'),
         import('@/lib/discover'),
       ]);
-      const result = await getHentaiAnime({
+      const result = await getHAnime({
         page: page + 1,
         dateSort,
         popularitySort,
@@ -194,7 +194,7 @@ export function HentaiDiscoverPage({
           >
             <Heart className="w-4 h-4" />
             Favorites
-            <span className="text-xs opacity-70">({hentaiFavoritesCount})</span>
+            <span className="text-xs opacity-70">({hFavoritesCount})</span>
           </button>
         </div>
         <p className="text-xs text-zinc-500 mt-1">
@@ -232,7 +232,7 @@ export function HentaiDiscoverPage({
               <select
                 value={dateSort ?? ''}
                 onChange={(e) =>
-                  setDateSort((e.target.value || null) as HentaiDateSort)
+                  setDateSort((e.target.value || null) as HDateSort)
                 }
                 className="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 focus:border-indigo-500 outline-none text-sm"
               >
@@ -246,7 +246,7 @@ export function HentaiDiscoverPage({
               <select
                 value={popularitySort ?? ''}
                 onChange={(e) =>
-                  setPopularitySort((e.target.value || null) as HentaiPopularitySort)
+                  setPopularitySort((e.target.value || null) as HPopularitySort)
                 }
                 className="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 focus:border-indigo-500 outline-none text-sm"
               >
@@ -315,13 +315,13 @@ export function HentaiDiscoverPage({
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {items.map((item) => {
-              const isFav = isFavoritedHentai(item.anilistId);
+              const isFav = isFavoritedH(item.anilistId);
               return (
                 <DiscoverCard
                   key={item.anilistId}
                   item={item}
                   alreadyAdded={isFav}
-                  onAdd={() => onAddHentaiFavorite(item)}
+                  onAdd={() => onAddHFavorite(item)}
                   // When already favorited, expose Remove (with confirmation).
                   onRemove={
                     isFav
@@ -332,11 +332,11 @@ export function HentaiDiscoverPage({
                             kind: 'danger',
                             confirmText: 'Remove',
                           });
-                          if (ok) onRemoveHentaiFavorite(item.anilistId);
+                          if (ok) onRemoveHFavorite(item.anilistId);
                         }
                       : undefined
                   }
-                  // No 3-dot menu on hentai cards — toggle is the bottom button.
+                  // No 3-dot menu on h cards — toggle is the bottom button.
                   // (DiscoverCard hides the menu when no toggle callbacks are passed.)
                 />
               );

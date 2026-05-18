@@ -3,8 +3,8 @@ import type {
   AnilistSearchResponse,
   AnilistTag,
   AnimeSeason,
-  HentaiDateSort,
-  HentaiPopularitySort,
+  HDateSort,
+  HPopularitySort,
 } from './types';
 
 const ENDPOINT = 'https://graphql.anilist.co';
@@ -133,7 +133,7 @@ export async function searchTopMatchBatch(
 }
 
 // Built dynamically so we can omit `tag_in` when there are no selected tags
-// (passing null for the variable trips AniList 500s like it does on hentai).
+// (passing null for the variable trips AniList 500s like it does on h).
 function buildSeasonQuery(hasTagFilter: boolean): string {
   const tagClause = hasTagFilter ? ', tag_in: $tagsIn' : '';
   return `
@@ -223,11 +223,11 @@ export async function getAllTags(signal?: AbortSignal): Promise<AnilistTag[]> {
   return json.data?.MediaTagCollection ?? [];
 }
 
-// Builds the hentai search query. The `status_not_in` arg is only injected
+// Builds the h search query. The `status_not_in` arg is only injected
 // when the user wants to exclude unreleased/cancelled — passing the variable
 // as null (when the user has the checkbox off) triggers a server-side 500 on
 // AniList, so we omit the arg entirely instead.
-function buildHentaiQuery(excludeUnreleased: boolean): string {
+function buildHQuery(excludeUnreleased: boolean): string {
   const statusClause = excludeUnreleased
     ? ', status_not_in: [NOT_YET_RELEASED, CANCELLED]'
     : '';
@@ -251,9 +251,9 @@ query ($page: Int, $sort: [MediaSort], $tagsIn: [String], $search: String) {
 }`;
 }
 
-function buildHentaiSort(
-  dateSort: HentaiDateSort,
-  popularitySort: HentaiPopularitySort,
+function buildHSort(
+  dateSort: HDateSort,
+  popularitySort: HPopularitySort,
 ): string[] {
   // Popularity is primary; date is the tiebreaker when both are set.
   const out: string[] = [];
@@ -265,17 +265,17 @@ function buildHentaiSort(
   return out.length > 0 ? out : ['POPULARITY_DESC'];
 }
 
-export async function getHentaiAnime(opts: {
+export async function getHAnime(opts: {
   page?: number;
-  dateSort?: HentaiDateSort;
-  popularitySort?: HentaiPopularitySort;
+  dateSort?: HDateSort;
+  popularitySort?: HPopularitySort;
   tags?: string[];
   search?: string;
   excludeUnreleased?: boolean;
   signal?: AbortSignal;
 }): Promise<SeasonAnimeResult> {
   const page = opts.page ?? 1;
-  const sort = buildHentaiSort(opts.dateSort ?? null, opts.popularitySort ?? null);
+  const sort = buildHSort(opts.dateSort ?? null, opts.popularitySort ?? null);
   // Empty arrays for tag_in trip AniList's filter on some servers; omit when empty.
   const tagsIn = opts.tags && opts.tags.length > 0 ? opts.tags : null;
   const trimmedSearch = opts.search?.trim() ?? '';
@@ -284,7 +284,7 @@ export async function getHentaiAnime(opts: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
-      query: buildHentaiQuery(!!opts.excludeUnreleased),
+      query: buildHQuery(!!opts.excludeUnreleased),
       variables: { page, sort, tagsIn, search },
     }),
     signal: opts.signal,

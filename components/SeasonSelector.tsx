@@ -272,7 +272,7 @@ export function SeasonSelector({
         <div ref={discoverRef} className="relative shrink-0">
           <div
             className={`inline-flex items-stretch rounded-full overflow-hidden text-sm font-medium transition-colors ${
-              activeDiscoverVariant === 'season' || activeDiscoverVariant === 'hentai'
+              activeDiscoverVariant === 'season' || activeDiscoverVariant === 'h'
                 ? 'bg-indigo-500 text-white'
                 : 'bg-zinc-800 text-zinc-300'
             }`}
@@ -281,7 +281,7 @@ export function SeasonSelector({
               type="button"
               onClick={() => onDiscover('season')}
               className={`inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 transition-colors ${
-                activeDiscoverVariant === 'season' || activeDiscoverVariant === 'hentai'
+                activeDiscoverVariant === 'season' || activeDiscoverVariant === 'h'
                   ? 'hover:bg-indigo-600'
                   : 'hover:bg-zinc-700 hover:text-zinc-100'
               }`}
@@ -294,7 +294,7 @@ export function SeasonSelector({
               type="button"
               onClick={() => setDiscoverOpen((o) => !o)}
               className={`pl-1 pr-2 py-1.5 border-l transition-colors ${
-                activeDiscoverVariant === 'season' || activeDiscoverVariant === 'hentai'
+                activeDiscoverVariant === 'season' || activeDiscoverVariant === 'h'
                   ? 'border-indigo-400/40 hover:bg-indigo-600'
                   : 'border-zinc-700 hover:bg-zinc-700 hover:text-zinc-100'
               }`}
@@ -330,11 +330,11 @@ export function SeasonSelector({
               <button
                 type="button"
                 onClick={() => {
-                  onDiscover('hentai');
+                  onDiscover('h');
                   setDiscoverOpen(false);
                 }}
                 className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left hover:bg-zinc-800 border-t border-zinc-800 ${
-                  activeDiscoverVariant === 'hentai'
+                  activeDiscoverVariant === 'h'
                     ? 'bg-indigo-500/10 text-indigo-200'
                     : 'text-zinc-200'
                 }`}

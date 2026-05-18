@@ -50,8 +50,8 @@ components/
   AddToCollectionModal.tsx     # search → add to collection
   DiscoverPage.tsx             # season picker + tag filter + grid, cache-aware
   DiscoverCard.tsx             # discover card (cover + meta + add/favorite/interested)
-  HentaiDiscoverPage.tsx       # H-specific: status/tag/sort filters
-  HentaiFavoritesPage.tsx      # the separate H favorites view
+  HDiscoverPage.tsx            # H-specific: status/tag/sort filters
+  HFavoritesPage.tsx           # the separate H favorites view
   CollectionPage.tsx           # Favorites / Interested with sort + tag filter + I/O
   ConfirmDialog.tsx            # <ConfirmProvider> + useConfirm() hook
   ManageSeasonsModal.tsx       # batch delete seasons

@@ -2,19 +2,19 @@
 
 import { useState } from 'react';
 import { ArrowLeft, Flame, Heart, Search, X } from 'lucide-react';
-import type { HentaiFavoriteEntry } from '@/lib/types';
+import type { HFavoriteEntry } from '@/lib/types';
 import { useConfirm } from './ConfirmDialog';
 import { DiscoverCard } from './DiscoverCard';
 
 interface Props {
-  items: HentaiFavoriteEntry[];
+  items: HFavoriteEntry[];
   onRemove: (anilistId: number) => void;
   onBack: () => void;
 }
 
 type SortKey = 'NEWEST_ADDED' | 'OLDEST_ADDED' | 'TITLE_AZ' | 'SCORE_DESC';
 
-export function HentaiFavoritesPage({ items, onRemove, onBack }: Props) {
+export function HFavoritesPage({ items, onRemove, onBack }: Props) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('NEWEST_ADDED');
   const confirm = useConfirm();

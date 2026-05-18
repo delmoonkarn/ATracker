@@ -86,18 +86,18 @@ export interface DiscoverCache {
   entries: DiscoverCacheEntry[];
 }
 
-export type DiscoverVariant = 'season' | 'hentai' | 'collection';
+export type DiscoverVariant = 'season' | 'h' | 'collection';
 
 export type AppView =
   | 'schedule'
   | 'discover-season'
-  | 'discover-hentai'
-  | 'hentai-favorites'
+  | 'discover-h'
+  | 'h-favorites'
   | 'collection-favorites'
   | 'collection-interested';
 
-/** Hentai favorites live in their own DB table — separate from CollectionEntry. */
-export interface HentaiFavoriteEntry extends DiscoverItem {
+/** H favorites live in their own DB table — separate from CollectionEntry. */
+export interface HFavoriteEntry extends DiscoverItem {
   addedAt: number;
 }
 
@@ -125,12 +125,12 @@ export interface AnilistTag {
   isAdult: boolean;
 }
 
-export type HentaiDateSort = 'NEW' | 'OLD' | null;
-export type HentaiPopularitySort = 'POPULAR' | 'LEAST_POPULAR' | null;
+export type HDateSort = 'NEW' | 'OLD' | null;
+export type HPopularitySort = 'POPULAR' | 'LEAST_POPULAR' | null;
 
-export interface HentaiPrefs {
-  dateSort: HentaiDateSort;
-  popularitySort: HentaiPopularitySort;
+export interface HPrefs {
+  dateSort: HDateSort;
+  popularitySort: HPopularitySort;
   tags: string[];
   excludeUnreleased: boolean;
 }

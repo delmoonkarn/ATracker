@@ -8,8 +8,8 @@ import { AddAnimeModal } from '@/components/AddAnimeModal';
 import { EmptyState } from '@/components/EmptyState';
 import { ManageSeasonsModal } from '@/components/ManageSeasonsModal';
 import { DiscoverPage } from '@/components/DiscoverPage';
-import { HentaiDiscoverPage } from '@/components/HentaiDiscoverPage';
-import { HentaiFavoritesPage } from '@/components/HentaiFavoritesPage';
+import { HDiscoverPage } from '@/components/HDiscoverPage';
+import { HFavoritesPage } from '@/components/HFavoritesPage';
 import { CollectionPage } from '@/components/CollectionPage';
 import { useConfirm } from '@/components/ConfirmDialog';
 import type {
@@ -23,18 +23,18 @@ import type {
   DiscoverCacheEntry,
   DiscoverItem,
   DiscoverVariant,
-  HentaiFavoriteEntry,
+  HFavoriteEntry,
   Season,
 } from '@/lib/types';
 import type { ImportProgress } from '@/lib/import';
 import {
   loadCollection,
   loadDiscoverCache,
-  loadHentaiFavorites,
+  loadHFavorites,
   loadState,
   saveCollection,
   saveDiscoverCache,
-  saveHentaiFavorites,
+  saveHFavorites,
   saveState,
 } from '@/lib/storage';
 import { getCurrentAnimeSeasonRef, newId, tagsMatch } from '@/lib/utils';
@@ -68,7 +68,7 @@ export default function HomePage() {
   const [manageOpen, setManageOpen] = useState(false);
   const [view, setView] = useState<AppView>('schedule');
   const [collection, setCollection] = useState<CollectionEntry[]>([]);
-  const [hentaiFavorites, setHentaiFavorites] = useState<HentaiFavoriteEntry[]>([]);
+  const [hFavorites, setHFavorites] = useState<HFavoriteEntry[]>([]);
   const [discoverCache, setDiscoverCache] = useState<DiscoverCache>({ entries: [] });
   const [importingCollection, setImportingCollection] = useState(false);
   const confirm = useConfirm();
@@ -81,17 +81,17 @@ export default function HomePage() {
 
   useEffect(() => {
     (async () => {
-      const [loaded, loadedCollection, loadedDiscover, loadedHentaiFavs] =
+      const [loaded, loadedCollection, loadedDiscover, loadedHFavs] =
         await Promise.all([
           loadState(),
           loadCollection(),
           loadDiscoverCache(),
-          loadHentaiFavorites(),
+          loadHFavorites(),
         ]);
       setState(loaded ?? defaultState());
       setCollection(loadedCollection);
       setDiscoverCache(loadedDiscover);
-      setHentaiFavorites(loadedHentaiFavs);
+      setHFavorites(loadedHFavs);
       setHydrated(true);
     })();
   }, []);
@@ -113,8 +113,8 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!hydrated) return;
-    saveHentaiFavorites(hentaiFavorites);
-  }, [hentaiFavorites, hydrated]);
+    saveHFavorites(hFavorites);
+  }, [hFavorites, hydrated]);
 
   const activeSeason: Season | null = useMemo(() => {
     if (!state) return null;
@@ -227,26 +227,26 @@ export default function HomePage() {
   const activeDiscoverVariant: DiscoverVariant | null =
     view === 'discover-season'
       ? 'season'
-      : view === 'discover-hentai' || view === 'hentai-favorites'
-        ? 'hentai'
+      : view === 'discover-h' || view === 'h-favorites'
+        ? 'h'
         : view === 'collection-favorites' || view === 'collection-interested'
           ? 'collection'
           : null;
 
-  // ---- Hentai favorites (separate DB table) -------------------------------
-  const hentaiFavIds = new Set(hentaiFavorites.map((h) => h.anilistId));
-  const isHentaiFavorited = (anilistId: number) =>
-    anilistId > 0 && hentaiFavIds.has(anilistId);
+  // ---- H favorites (separate DB table) -------------------------------
+  const hFavIds = new Set(hFavorites.map((h) => h.anilistId));
+  const isHFavorited = (anilistId: number) =>
+    anilistId > 0 && hFavIds.has(anilistId);
 
-  const addHentaiFavorite = (item: DiscoverItem) => {
-    setHentaiFavorites((prev) => {
+  const addHFavorite = (item: DiscoverItem) => {
+    setHFavorites((prev) => {
       if (prev.some((h) => h.anilistId === item.anilistId)) return prev;
       return [...prev, { ...item, addedAt: Date.now() }];
     });
   };
 
-  const removeHentaiFavorite = (anilistId: number) => {
-    setHentaiFavorites((prev) => prev.filter((h) => h.anilistId !== anilistId));
+  const removeHFavorite = (anilistId: number) => {
+    setHFavorites((prev) => prev.filter((h) => h.anilistId !== anilistId));
   };
 
   // ---- Collection (favorites + interested) ----
@@ -573,8 +573,8 @@ export default function HomePage() {
           setView(
             variant === 'season'
               ? 'discover-season'
-              : variant === 'hentai'
-                ? 'discover-hentai'
+              : variant === 'h'
+                ? 'discover-h'
                 : 'collection-favorites',
           );
         }}
@@ -608,19 +608,19 @@ export default function HomePage() {
             })
           }
         />
-      ) : view === 'discover-hentai' ? (
-        <HentaiDiscoverPage
-          isFavoritedHentai={isHentaiFavorited}
-          onAddHentaiFavorite={addHentaiFavorite}
-          onRemoveHentaiFavorite={removeHentaiFavorite}
-          hentaiFavoritesCount={hentaiFavorites.length}
-          onOpenFavorites={() => setView('hentai-favorites')}
+      ) : view === 'discover-h' ? (
+        <HDiscoverPage
+          isFavoritedH={isHFavorited}
+          onAddHFavorite={addHFavorite}
+          onRemoveHFavorite={removeHFavorite}
+          hFavoritesCount={hFavorites.length}
+          onOpenFavorites={() => setView('h-favorites')}
         />
-      ) : view === 'hentai-favorites' ? (
-        <HentaiFavoritesPage
-          items={hentaiFavorites}
-          onRemove={removeHentaiFavorite}
-          onBack={() => setView('discover-hentai')}
+      ) : view === 'h-favorites' ? (
+        <HFavoritesPage
+          items={hFavorites}
+          onRemove={removeHFavorite}
+          onBack={() => setView('discover-h')}
         />
       ) : view === 'collection-favorites' || view === 'collection-interested' ? (
         <CollectionPage

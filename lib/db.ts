@@ -12,8 +12,8 @@ import type {
   DiscoverCache,
   DiscoverCacheEntry,
   DiscoverItem,
-  HentaiFavoriteEntry,
-  HentaiPrefs,
+  HFavoriteEntry,
+  HPrefs,
   Season,
 } from './types';
 
@@ -356,7 +356,7 @@ function writeDiscoverCache(cache: DiscoverCache): void {
   writeDiscoverTxn(cache);
 }
 
-// ---- Simple key-value pairs (tags cache, hentai prefs) -------------------
+// ---- Simple key-value pairs (tags cache, h prefs) -------------------
 
 function readKv(key: string): unknown | null {
   const row = db
@@ -377,7 +377,7 @@ function writeKv(key: string, value: unknown): void {
   ).run(key, JSON.stringify(value), Date.now());
 }
 
-// ---- Hentai favorites -----------------------------------------------------
+// ---- H favorites -----------------------------------------------------
 
 interface HFavoriteRow {
   anilist_id: number;
@@ -395,7 +395,7 @@ interface HFavoriteRow {
   added_at: number;
 }
 
-function readHentaiFavorites(): HentaiFavoriteEntry[] {
+function readHFavorites(): HFavoriteEntry[] {
   const rows = db
     .prepare('SELECT * FROM h_favorites ORDER BY added_at DESC')
     .all() as HFavoriteRow[];
@@ -420,7 +420,7 @@ function readHentaiFavorites(): HentaiFavoriteEntry[] {
   });
 }
 
-const writeHentaiFavoritesTxn = db.transaction((items: HentaiFavoriteEntry[]) => {
+const writeHFavoritesTxn = db.transaction((items: HFavoriteEntry[]) => {
   db.prepare('DELETE FROM h_favorites').run();
   const ins = db.prepare(`
     INSERT INTO h_favorites
@@ -447,8 +447,8 @@ const writeHentaiFavoritesTxn = db.transaction((items: HentaiFavoriteEntry[]) =>
   }
 });
 
-function writeHentaiFavorites(items: HentaiFavoriteEntry[]): void {
-  writeHentaiFavoritesTxn(items);
+function writeHFavorites(items: HFavoriteEntry[]): void {
+  writeHFavoritesTxn(items);
 }
 
 // ---- Public router for the API route --------------------------------------
@@ -472,9 +472,9 @@ export function readByKey(key: DbKey): unknown {
     case 'tags':
       return readKv('tags') as AnilistTag[] | null;
     case 'h-prefs':
-      return readKv('h-prefs') as HentaiPrefs | null;
+      return readKv('h-prefs') as HPrefs | null;
     case 'h-favorites':
-      return readHentaiFavorites();
+      return readHFavorites();
   }
 }
 
@@ -496,7 +496,7 @@ export function writeByKey(key: DbKey, value: unknown): void {
       writeKv('h-prefs', value);
       return;
     case 'h-favorites':
-      writeHentaiFavorites(value as HentaiFavoriteEntry[]);
+      writeHFavorites(value as HFavoriteEntry[]);
       return;
   }
 }
