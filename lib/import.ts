@@ -52,6 +52,22 @@ function parsePlatform(cell: ExcelJSNamespace.Cell): { platform: string; platfor
   return { platform: v == null ? '' : String(v), platformUrl: '' };
 }
 
+/** Extracts the URL from a Google-Sheets-style `IMAGE("url")` cell formula. */
+function extractImageUrl(formula: string): string {
+  const m = /IMAGE\(\s*"([^"]*)"\s*\)/i.exec(formula);
+  return m ? m[1] : '';
+}
+
+/** Returns the formula text of a cell (without the leading '='), or ''. */
+function getFormula(cell: ExcelJSNamespace.Cell): string {
+  const v = cell.value as unknown;
+  if (v && typeof v === 'object' && 'formula' in (v as object)) {
+    return String((v as { formula: unknown }).formula ?? '');
+  }
+  if (typeof v === 'string' && v.startsWith('=')) return v.slice(1);
+  return '';
+}
+
 function asString(val: unknown): string {
   if (val == null) return '';
   if (val instanceof Date) return val.toISOString();
@@ -221,6 +237,7 @@ export async function importCollection(file: File): Promise<CollectionEntry[]> {
       const v = String(cell.value ?? '').trim().toLowerCase();
       if (v) colIdx[v] = col;
     });
+    const cImage = 1; // column A holds the =IMAGE("…") formula
     const cAnilist = colIdx['anilist id'] ?? 4;
     const cTitle = colIdx['title'] ?? 2;
     const cTitleEn = colIdx['english title'] ?? 3;
@@ -262,6 +279,10 @@ export async function importCollection(file: File): Promise<CollectionEntry[]> {
       }
       const tagsRaw = String(row.getCell(cTags).value ?? '');
       const tags = tagsRaw ? tagsRaw.split(',').map((s) => s.trim()).filter(Boolean) : [];
+
+      // Pull the cover URL out of column A's =IMAGE("url") formula. extractImageUrl
+      // and getFormula are the same helpers the schedule import uses.
+      const imageUrl = extractImageUrl(getFormula(row.getCell(cImage)));
       const format = String(row.getCell(cFormat).value ?? '').trim() || undefined;
       const epsRaw = row.getCell(cEps).value;
       const episodes =
@@ -275,7 +296,7 @@ export async function importCollection(file: File): Promise<CollectionEntry[]> {
         section,
         title,
         titleEnglish,
-        imageUrl: '', // image was an =IMAGE() formula, not worth re-parsing
+        imageUrl,
         tags,
         format,
         episodes,
