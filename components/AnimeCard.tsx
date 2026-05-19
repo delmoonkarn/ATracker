@@ -401,11 +401,11 @@ export function AnimeCard({
     entry.watchStatus === 'WATCHING' &&
     aired != null &&
     watched < aired;
-  // On-hold dim only fires on the current season — past/future season
-  // schedules stay at full saturation so completed/dropped/on-hold cards
-  // read uniformly. The +/- counter and status pill themselves stay
-  // editable on every season; this only affects card-level opacity.
-  const isOnHold = !!showAiring && entry.watchStatus === 'ON_HOLD';
+  // Dropped dim only fires on the current season — past/future season
+  // schedules stay at full saturation so completed/dropped cards read
+  // uniformly. The +/- counter and status pill themselves stay editable on
+  // every season; this only affects card-level opacity.
+  const isDropped = !!showAiring && entry.watchStatus === 'DROPPED';
 
   // Card-outer priority: behind beats today, because "you're falling behind"
   // is a stronger signal than "it airs today". Single loud "shine" variant
@@ -424,8 +424,10 @@ export function AnimeCard({
   } else {
     cardOuter = 'border-zinc-800 hover:border-zinc-700';
   }
-  // On-hold cards are visually muted — the show is paused, lower priority.
-  const onHoldDim = isOnHold ? 'opacity-60 saturate-50' : '';
+  // Dropped cards are visually muted — you've abandoned the show, lower
+  // priority than active entries. Same dim treatment that used to apply to
+  // ON_HOLD before that was reverted to full saturation.
+  const droppedDim = isDropped ? 'opacity-60 saturate-50' : '';
   const bodyTint = isBehind ? 'bg-orange-500/25' : '';
 
   const showEnglish =
@@ -433,7 +435,7 @@ export function AnimeCard({
 
   return (
     <div
-      className={`group relative bg-zinc-900 rounded-xl overflow-hidden border transition-all hover:-translate-y-0.5 shadow-lg shadow-black/20 flex flex-col ${cardOuter} ${onHoldDim}`}
+      className={`group relative bg-zinc-900 rounded-xl overflow-hidden border transition-all hover:-translate-y-0.5 shadow-lg shadow-black/20 flex flex-col ${cardOuter} ${droppedDim}`}
     >
       <CoverWrap
         url={entry.platformUrl}
