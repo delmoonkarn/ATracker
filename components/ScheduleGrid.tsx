@@ -71,6 +71,10 @@ function ImportExportMenu({
   exporting?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  // Sticky format choice — affects both Import (file-picker filter) and
+  // Export (which serializer runs). Defaults to xlsx as the more-common
+  // human-readable format.
+  const [format, setFormat] = useState<'xlsx' | 'json'>('xlsx');
   const ref = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const jsonFileRef = useRef<HTMLInputElement>(null);
@@ -144,59 +148,59 @@ function ImportExportMenu({
 
       {open && (
         <div className="absolute right-0 mt-2 w-44 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden z-30">
+          {/* Format toggle — segmented control. Picks which input the
+              Import button opens AND which serializer Export runs. */}
+          <div className="flex gap-0.5 p-1 m-2 bg-zinc-950 rounded-lg">
+            {(['xlsx', 'json'] as const).map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setFormat(opt)}
+                className={`flex-1 px-2 py-1 text-[11px] font-semibold rounded transition-colors ${
+                  format === opt
+                    ? 'bg-indigo-500 text-white'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                .{opt}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             onClick={() => {
               setOpen(false);
-              fileRef.current?.click();
+              (format === 'xlsx' ? fileRef : jsonFileRef).current?.click();
             }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 text-left"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 text-left border-t border-zinc-800"
           >
             <ArrowUpFromLine className="w-4 h-4" />
-            Import .xlsx
+            Import
           </button>
           <button
             type="button"
             onClick={async () => {
               setOpen(false);
-              const ok = await confirm({
-                title: 'Export workbook',
-                message: 'Export all your tracker seasons to a .xlsx workbook?',
-                confirmText: 'Export',
-              });
-              if (ok) onExport();
+              if (format === 'xlsx') {
+                const ok = await confirm({
+                  title: 'Export workbook',
+                  message: 'Export all your tracker seasons to a .xlsx workbook?',
+                  confirmText: 'Export',
+                });
+                if (ok) onExport();
+              } else {
+                const ok = await confirm({
+                  title: 'Backup as JSON',
+                  message: 'Download a lossless JSON backup of every season?',
+                  confirmText: 'Download',
+                });
+                if (ok) onExportJson();
+              }
             }}
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 text-left border-t border-zinc-800"
           >
             <ArrowDownToLine className="w-4 h-4" />
-            Export .xlsx
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              jsonFileRef.current?.click();
-            }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 text-left border-t-2 border-zinc-700"
-          >
-            <ArrowUpFromLine className="w-4 h-4" />
-            Restore .json
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              setOpen(false);
-              const ok = await confirm({
-                title: 'Backup as JSON',
-                message: 'Download a lossless JSON backup of every season?',
-                confirmText: 'Download',
-              });
-              if (ok) onExportJson();
-            }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 text-left border-t border-zinc-800"
-          >
-            <ArrowDownToLine className="w-4 h-4" />
-            Backup .json
+            Export
           </button>
         </div>
       )}

@@ -30,9 +30,9 @@ function rowFillFor(day: DayOfWeek | null): string {
   return day ? DAY_FILLS[day] : ROW_FILL;
 }
 
-// A: image, B: title, C: day, D: time, E: link, F: status-note,
-// G: watch-status, H: watched, I: total-eps
-const COLUMN_WIDTHS = [9.63, 34.38, 10.5, 8.88, 14.75, 12.63, 13, 9, 9];
+// A: image, B: title, C: day, D: time, E: link, F: watch-status,
+// G: watched, H: total-eps, I: status-note (free-text, kept at the back)
+const COLUMN_WIDTHS = [9.63, 34.38, 10.5, 8.88, 14.75, 13, 9, 9, 12.63];
 const HEADER_ROW_HEIGHT = 15.75;
 const DATA_ROW_HEIGHT = 75;
 
@@ -68,28 +68,25 @@ function safeSheetName(name: string): string {
   return name.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31) || 'Sheet';
 }
 
-function safeFileName(name: string): string {
-  return name.replace(/[^a-z0-9_\- ]+/gi, '_').trim() || 'anime-tracker';
-}
-
 function applyColumnWidths(ws: ExcelJSNamespace.Worksheet): void {
   ws.columns = COLUMN_WIDTHS.map((w) => ({ width: w }));
 }
 
 function writeHeader(ws: ExcelJSNamespace.Worksheet): void {
   ws.getRow(1).height = HEADER_ROW_HEIGHT;
-  // F (status note) intentionally left blank in the header — matches the
-  // original workbook format. G/H/I are new and labeled.
+  // I (status note) is intentionally label-less — preserves the visual
+  // "this is a free-form column" cue from the original workbook format,
+  // just relocated from F to the back of the row.
   const headers: (string | null)[] = [
     null,
     'Title',
     'Day',
     'Time',
     'Link',
-    null,
     'Watch status',
     'Watched',
     'Total eps',
+    null,
   ];
   const thin = { style: 'thin' as const };
   const border = { top: thin, bottom: thin, left: thin, right: thin };
@@ -101,9 +98,11 @@ function writeHeader(ws: ExcelJSNamespace.Worksheet): void {
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } } as ExcelJSNamespace.FillPattern;
     cell.alignment = {
       vertical: 'middle',
-      horizontal: i >= 2 && i <= 4 ? 'center' : i >= 6 ? 'center' : undefined,
+      horizontal: i >= 2 && i <= 7 ? 'center' : undefined,
     };
-    if ((i >= 1 && i <= 4) || (i >= 6 && i <= 8)) cell.border = border;
+    // Borders on the structured columns B–H; the notes column I stays
+    // free-form, no border.
+    if (i >= 1 && i <= 7) cell.border = border;
   });
 }
 
@@ -154,20 +153,22 @@ function styleDataRow(
   e.alignment = { vertical: 'middle', horizontal: 'center' };
   e.border = { bottom: thin };
 
-  // F: status — intentionally no fill / no border
-  const f = ws.getCell(`F${r}`);
-  f.font = { name: FONT_NAME, size: 10 };
-  f.alignment = { vertical: 'middle' };
-
-  // G/H/I: watch tracker cells. Match day-fill so they read as part of the
+  // F/G/H: watch tracker cells. Match day-fill so they read as part of the
   // row, with a thin bottom border to separate rows.
-  for (const col of ['G', 'H', 'I'] as const) {
+  for (const col of ['F', 'G', 'H'] as const) {
     const c = ws.getCell(`${col}${r}`);
     c.fill = rowFill;
     c.font = { name: FONT_NAME, size: 10 };
     c.alignment = { vertical: 'middle', horizontal: 'center' };
     c.border = { bottom: thin };
   }
+
+  // I: status note — intentionally no fill / no border. Free-form column
+  // for personal notes ("peak", "ดอง", etc.), parked at the back of the
+  // row so it doesn't visually break up the structured columns.
+  const note = ws.getCell(`I${r}`);
+  note.font = { name: FONT_NAME, size: 10 };
+  note.alignment = { vertical: 'middle' };
 }
 
 function writeSeasonSheet(wb: ExcelJSNamespace.Workbook, season: Season): void {
@@ -214,20 +215,21 @@ function writeSeasonSheet(wb: ExcelJSNamespace.Workbook, season: Season): void {
       ws.getCell(`E${r}`).value = anime.platform;
     }
 
-    if (anime.status) ws.getCell(`F${r}`).value = anime.status;
-
-    // G: watch status as a human label (e.g. "Watching"); H/I: numeric.
+    // F: watch status as a human label (e.g. "Watching"); G/H: numeric.
     // Cells left empty when the corresponding entry field is unset, so the
     // workbook stays clean for shows the user hasn't engaged with.
     if (anime.watchStatus) {
-      ws.getCell(`G${r}`).value = WATCH_STATUS_LABELS[anime.watchStatus];
+      ws.getCell(`F${r}`).value = WATCH_STATUS_LABELS[anime.watchStatus];
     }
     if (anime.episodesWatched != null) {
-      ws.getCell(`H${r}`).value = anime.episodesWatched;
+      ws.getCell(`G${r}`).value = anime.episodesWatched;
     }
     if (anime.totalEpisodes != null) {
-      ws.getCell(`I${r}`).value = anime.totalEpisodes;
+      ws.getCell(`H${r}`).value = anime.totalEpisodes;
     }
+
+    // I: free-text notes — moved to the back of the row.
+    if (anime.status) ws.getCell(`I${r}`).value = anime.status;
   });
 }
 
@@ -257,7 +259,7 @@ export async function exportWorkbook(seasons: Season[]): Promise<void> {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `track_-_${safeFileName(new Date().toISOString().slice(0, 10))}.xlsx`;
+  a.download = `schedule_${new Date().toISOString().slice(0, 10)}.xlsx`;
   document.body.appendChild(a);
   a.click();
   a.remove();

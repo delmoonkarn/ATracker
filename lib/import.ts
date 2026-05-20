@@ -145,23 +145,56 @@ export async function importWorkbook(
       skippedSheets.push(ws.name);
       return;
     }
+    // Read the header row to map labels → column indices. Lets us survive
+    // layout changes (e.g. notes column being moved from F to I) and old
+    // workbooks where Watch status / Watched / Total eps lived at G/H/I.
+    // Notes header is intentionally blank, so we infer its column by
+    // finding the unused slot among the data columns (2..9).
+    const colIdx: Record<string, number> = {};
+    ws.getRow(1).eachCell((cell, col) => {
+      const v = String(cell.value ?? '').trim().toLowerCase();
+      if (v) colIdx[v] = col;
+    });
+    const cTitle = colIdx['title'] ?? 2;
+    const cDay = colIdx['day'] ?? 3;
+    const cTime = colIdx['time'] ?? 4;
+    const cLink = colIdx['link'] ?? 5;
+    const cWatchStatus = colIdx['watch status'] ?? 6;
+    const cWatched = colIdx['watched'] ?? 7;
+    const cTotalEps = colIdx['total eps'] ?? 8;
+    // Notes column: whichever data slot (2..9) wasn't claimed by a label.
+    const usedCols = new Set([
+      cTitle,
+      cDay,
+      cTime,
+      cLink,
+      cWatchStatus,
+      cWatched,
+      cTotalEps,
+    ]);
+    let cNotes = 9;
+    for (let i = 2; i <= 9; i++) {
+      if (!usedCols.has(i)) {
+        cNotes = i;
+        break;
+      }
+    }
+
     const animes: AnimeEntry[] = [];
     ws.eachRow((row, rowNum) => {
       if (rowNum === 1) return;
-      // Column A intentionally skipped — title (B) will drive the AniList lookup
+      // Column A intentionally skipped — title will drive the AniList lookup
       // and provide both the cover image and the canonical title.
-      const title = asString(row.getCell(2).value).trim();
+      const title = asString(row.getCell(cTitle).value).trim();
       if (!title) return;
 
-      const day = parseDay(row.getCell(3).value);
-      const time = parseTime(row.getCell(4).value);
-      const { platform, platformUrl } = parsePlatform(row.getCell(5));
-      const status = asString(row.getCell(6).value);
-      // G/H/I are watch-tracker fields added in the schedule-card upgrade.
-      // Old workbooks lack them entirely → these helpers return undefined.
-      const watchStatus = parseWatchStatus(row.getCell(7).value);
-      const episodesWatched = parseNonNegInt(row.getCell(8).value);
-      const totalEpisodes = parseNonNegInt(row.getCell(9).value);
+      const day = parseDay(row.getCell(cDay).value);
+      const time = parseTime(row.getCell(cTime).value);
+      const { platform, platformUrl } = parsePlatform(row.getCell(cLink));
+      const status = asString(row.getCell(cNotes).value);
+      const watchStatus = parseWatchStatus(row.getCell(cWatchStatus).value);
+      const episodesWatched = parseNonNegInt(row.getCell(cWatched).value);
+      const totalEpisodes = parseNonNegInt(row.getCell(cTotalEps).value);
 
       animes.push({
         id: newId(),

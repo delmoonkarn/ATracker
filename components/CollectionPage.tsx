@@ -65,6 +65,9 @@ export function CollectionPage({
   const [allTags, setAllTags] = useState<AnilistTag[] | null>(null);
   const [exporting, setExporting] = useState(false);
   const [ioMenuOpen, setIoMenuOpen] = useState(false);
+  // Sticky format choice — drives both Import (file picker filter) and
+  // Export (which serializer runs). Defaults to xlsx.
+  const [ioFormat, setIoFormat] = useState<'xlsx' | 'json'>('xlsx');
   const ioMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
@@ -326,59 +329,62 @@ export function CollectionPage({
 
               {ioMenuOpen && (
                 <div className="absolute right-0 mt-2 w-44 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden z-30">
+                  {/* Format toggle — segmented control. Picks which input
+                      the Import button opens AND which serializer Export
+                      runs. */}
+                  <div className="flex gap-0.5 p-1 m-2 bg-zinc-950 rounded-lg">
+                    {(['xlsx', 'json'] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setIoFormat(opt)}
+                        className={`flex-1 px-2 py-1 text-[11px] font-semibold rounded transition-colors ${
+                          ioFormat === opt
+                            ? 'bg-indigo-500 text-white'
+                            : 'text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        .{opt}
+                      </button>
+                    ))}
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
                       setIoMenuOpen(false);
-                      fileInputRef.current?.click();
+                      (ioFormat === 'xlsx'
+                        ? fileInputRef
+                        : jsonFileInputRef
+                      ).current?.click();
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 text-left"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 text-left border-t border-zinc-800"
                   >
                     <ArrowUpFromLine className="w-4 h-4" />
-                    Import .xlsx
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIoMenuOpen(false);
-                      handleExport();
-                    }}
-                    disabled={collection.length === 0}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 text-left border-t border-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <ArrowDownToLine className="w-4 h-4" />
-                    Export .xlsx
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIoMenuOpen(false);
-                      jsonFileInputRef.current?.click();
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 text-left border-t-2 border-zinc-700"
-                  >
-                    <ArrowUpFromLine className="w-4 h-4" />
-                    Restore .json
+                    Import
                   </button>
                   <button
                     type="button"
                     onClick={async () => {
                       setIoMenuOpen(false);
                       if (collection.length === 0) return;
-                      const ok = await confirm({
-                        title: 'Backup collection as JSON',
-                        message: `Download a lossless JSON backup of ${collection.length} entr${
-                          collection.length === 1 ? 'y' : 'ies'
-                        }?`,
-                        confirmText: 'Download',
-                      });
-                      if (ok) onExportJson();
+                      if (ioFormat === 'xlsx') {
+                        handleExport();
+                      } else {
+                        const ok = await confirm({
+                          title: 'Backup collection as JSON',
+                          message: `Download a lossless JSON backup of ${collection.length} entr${
+                            collection.length === 1 ? 'y' : 'ies'
+                          }?`,
+                          confirmText: 'Download',
+                        });
+                        if (ok) onExportJson();
+                      }
                     }}
                     disabled={collection.length === 0}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 text-left border-t border-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <ArrowDownToLine className="w-4 h-4" />
-                    Backup .json
+                    Export
                   </button>
                 </div>
               )}
