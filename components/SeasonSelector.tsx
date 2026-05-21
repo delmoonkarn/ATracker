@@ -352,9 +352,22 @@ export function SeasonSelector({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  onDiscover('h');
+                onClick={async () => {
                   setDiscoverOpen(false);
+                  // Skip the prompt when the user's already in an H view —
+                  // navigating between H Discover and H Favorites
+                  // shouldn't re-ask every time.
+                  if (activeDiscoverVariant !== 'h') {
+                    const ok = await confirm({
+                      title: 'Enter H section',
+                      message:
+                        'This section contains adult content (18+). Continue?',
+                      confirmText: 'Continue',
+                      kind: 'warning',
+                    });
+                    if (!ok) return;
+                  }
+                  onDiscover('h');
                 }}
                 className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left hover:bg-zinc-800 border-t border-zinc-800 ${
                   activeDiscoverVariant === 'h'
