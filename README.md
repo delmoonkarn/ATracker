@@ -12,7 +12,7 @@ Personal anime tracker — schedule your watch list by season, discover what's a
 | Styling      | Tailwind CSS                                            |
 | Storage      | SQLite via `better-sqlite3` — `data/anime-tracker.db`   |
 | Spreadsheets | ExcelJS (`.xlsx` import / export)                       |
-| External API | [AniList](https://anilist.co/) GraphQL (no key required) |
+| External API | [AniList](https://anilist.co/) GraphQL |
 
 ## Run it
 
