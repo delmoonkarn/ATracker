@@ -360,6 +360,84 @@ export async function getHAnime(opts: {
 }
 
 /**
+ * Currently-releasing anime that started BEFORE the given season's start
+ * date. Used by Discover's "Continuing" block to surface long-runners
+ * (Digimon BeatBreak, split-cour shows in their second cour, One Piece
+ * etc.) alongside the main season grid.
+ *
+ * Pre-filter is server-side via AniList's `startDate_lesser` filter,
+ * which takes a FuzzyDateInt (YYYYMMDD). Without this filter the popularity
+ * sort gets dominated by the current season's mega-hits and moderate-
+ * popularity long-runners never make the top 50.
+ */
+export async function getContinuingAnime(opts: {
+  beforeSeason: AnimeSeason;
+  beforeYear: number;
+  tags?: string[];
+  signal?: AbortSignal;
+}): Promise<AnilistMedia[]> {
+  const tagsIn = opts.tags && opts.tags.length > 0 ? opts.tags : null;
+  // Cutoff = first day of the viewed season. Anything that started before
+  // this date and is still RELEASING is by definition a continuing show.
+  const monthOfSeason: Record<AnimeSeason, number> = {
+    WINTER: 1,
+    SPRING: 4,
+    SUMMER: 7,
+    FALL: 10,
+  };
+  const cutoff = opts.beforeYear * 10000 + monthOfSeason[opts.beforeSeason] * 100 + 1;
+
+  // Build query head + tag clause dynamically. Empty `query ()` is a GraphQL
+  // syntax error so we always include at least the $before variable.
+  const params = ['$before: FuzzyDateInt'];
+  if (tagsIn) params.push('$tagsIn: [String]');
+  const tagClause = tagsIn ? ', tag_in: $tagsIn' : '';
+  const query = `
+query (${params.join(', ')}) {
+  Page(perPage: 50) {
+    media(
+      status: RELEASING,
+      type: ANIME,
+      isAdult: false,
+      startDate_lesser: $before,
+      sort: [POPULARITY_DESC]${tagClause}
+    ) {
+      id
+      title { romaji english native }
+      coverImage { large medium }
+      format
+      episodes
+      averageScore
+      genres
+      description(asHtml: false)
+      tags { name rank isAdult isMediaSpoiler }
+      startDate { year month day }
+      nextAiringEpisode { episode airingAt }
+      season
+      seasonYear
+    }
+  }
+}`;
+  const variables: Record<string, unknown> = { before: cutoff };
+  if (tagsIn) variables.tagsIn = tagsIn;
+  const res = await anilistFetch(
+    JSON.stringify({ query, variables }),
+    opts.signal,
+  );
+  if (!res.ok) {
+    throw new AnilistError(`AniList returned HTTP ${res.status}.`, res.status);
+  }
+  const json = (await res.json()) as {
+    data?: { Page?: { media?: AnilistMedia[] } };
+    errors?: { message: string }[];
+  };
+  if (json.errors && json.errors.length > 0) {
+    throw new AnilistError(json.errors[0].message, 500);
+  }
+  return json.data?.Page?.media ?? [];
+}
+
+/**
  * Paginates `getSeasonAnime` until there's no next page or `maxPages` is hit.
  * Inserts a short delay between page fetches to stay polite with AniList's
  * 90 req/min rate limit.

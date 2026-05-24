@@ -70,6 +70,11 @@ export interface AnilistMedia {
   /** AniList's upcoming-episode field — only present for shows currently
    *  airing (RELEASING). Null for FINISHED / NOT_YET_RELEASED / CANCELLED. */
   nextAiringEpisode?: { episode: number; airingAt: number } | null;
+  /** Which AniList season the show is categorized under. Used by the
+   *  Discover "Continuing" section to filter out shows that belong to
+   *  the currently-viewed season. */
+  season?: AnimeSeason | null;
+  seasonYear?: number | null;
 }
 
 export interface ReleaseDate {

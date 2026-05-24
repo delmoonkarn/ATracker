@@ -81,11 +81,20 @@ export function DiscoverPage({
   const [search, setSearch] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
+  /** True = hide everything except the Continuing block. Toggled by the
+   *  "Continuing N" pill in the format filter row. Auto-resets when the
+   *  selection moves to a non-current season (where Continuing is empty). */
+  const [continuingOnly, setContinuingOnly] = useState(false);
   const [allTags, setAllTags] = useState<AnilistTag[] | null>(null);
   const [items, setItems] = useState<DiscoverItem[]>([]);
+  /** Currently-releasing shows that aren't categorized in the viewed season —
+   *  e.g. Digimon BeatBreak (a Fall 2025 show still airing into Spring 2026).
+   *  Only populated when viewing the current calendar season; empty otherwise. */
+  const [continuingItems, setContinuingItems] = useState<DiscoverItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const continuingAbortRef = useRef<AbortController | null>(null);
 
   // Load tags once (with localStorage cache).
   useEffect(() => {
@@ -159,17 +168,85 @@ export function DiscoverPage({
         tagsMatch(c.tags, selectedTags),
     );
 
+  /** Pulls currently-releasing shows that aren't already in the main season
+   *  query. Only meaningful when viewing the current calendar season — for
+   *  past/future views, "currently airing" doesn't relate to the picked
+   *  season, so we don't render the block at all. */
+  const fetchContinuing = async () => {
+    continuingAbortRef.current?.abort();
+    const controller = new AbortController();
+    continuingAbortRef.current = controller;
+    try {
+      const [{ getContinuingAnime }, { toDiscoverItem }] = await Promise.all([
+        import('@/lib/anilist'),
+        import('@/lib/discover'),
+      ]);
+      // beforeSeason / beforeYear pin the AniList startDate_lesser filter
+      // to the start of the season we're viewing. Pre-filtering server-side
+      // means the 50-row popularity-sorted page is filled with actual
+      // continuing shows (Digimon BeatBreak, split-cours, etc.) instead of
+      // being dominated by current-season hits we'd just throw away.
+      const media = await getContinuingAnime({
+        beforeSeason: defaultRef.season,
+        beforeYear: defaultRef.year,
+        tags: selectedTags,
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
+      const filtered = media
+        .filter((m) => {
+          // Defensive: drop anything tagged in the viewed season.
+          if (m.season === selectedSeason && m.seasonYear === selectedYear) {
+            return false;
+          }
+          // "Dead trap" rejection: AniList's status=RELEASING flag stays
+          // set on stale entries (productions on indefinite hiatus, etc.)
+          // The stronger signal is nextAiringEpisode — AniList nulls it
+          // when there's no scheduled upcoming episode. Requiring it
+          // confirms the show is actually still broadcasting.
+          if (!m.nextAiringEpisode) return false;
+          return true;
+        })
+        .map(toDiscoverItem);
+      setContinuingItems(filtered);
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      if (err instanceof Error && err.name !== 'AbortError') {
+        // Loud: previous quiet console.warn made a malformed query look
+        // like "no continuing shows" instead of "the request errored".
+        console.error('[discover] continuing fetch failed:', err);
+      }
+      // Don't surface a UI error — the main grid is still useful even
+      // when the optional Continuing fetch fails.
+    }
+  };
+
   // On selection change: use cache when it matches; otherwise fetch.
+  // The "Continuing" block fires alongside as a separate request when
+  // viewing the current calendar season.
   useEffect(() => {
     const hit = findCached();
     if (hit) {
       setItems(hit.items);
       setLoading(false);
       setError(null);
-      return;
+    } else {
+      performFetch();
     }
-    performFetch();
-    return () => abortRef.current?.abort();
+    const isCurrent =
+      selectedSeason === defaultRef.season && selectedYear === defaultRef.year;
+    if (isCurrent) {
+      fetchContinuing();
+    } else {
+      setContinuingItems([]);
+      // Drop the continuing-only filter — there's no continuing block on
+      // past/future season views, leaving it on would render an empty grid.
+      setContinuingOnly(false);
+    }
+    return () => {
+      abortRef.current?.abort();
+      continuingAbortRef.current?.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSeason, selectedYear, selectedTags]);
 
@@ -181,30 +258,41 @@ export function DiscoverPage({
 
   const q = search.trim().toLowerCase();
   const formatFilterActive = selectedFormats.length > 0;
-  const visibleItems = items.filter((i) => {
-    if (formatFilterActive && (!i.format || !selectedFormats.includes(i.format))) {
-      return false;
-    }
-    if (q) {
-      const titleHit = i.title.toLowerCase().includes(q);
-      const engHit = i.titleEnglish?.toLowerCase().includes(q) ?? false;
-      if (!titleHit && !engHit) return false;
-    }
-    return true;
-  });
+  // Continuing-only mode hides every main-grid item. Filtered continuing
+  // items still render via the existing filteredContinuing path below.
+  const visibleItems = continuingOnly
+    ? []
+    : items.filter((i) => {
+        if (formatFilterActive && (!i.format || !selectedFormats.includes(i.format))) {
+          return false;
+        }
+        if (q) {
+          const titleHit = i.title.toLowerCase().includes(q);
+          const engHit = i.titleEnglish?.toLowerCase().includes(q) ?? false;
+          if (!titleHit && !engHit) return false;
+        }
+        return true;
+      });
 
   // Format counts off the unfiltered (but search-aware) item list so each
   // pill shows how many would surface if its format were the only one
-  // selected. Skips items with no format reported.
-  const searchScoped = q
-    ? items.filter(
-        (i) =>
-          i.title.toLowerCase().includes(q) ||
-          (i.titleEnglish?.toLowerCase().includes(q) ?? false),
-      )
-    : items;
+  // selected. Includes continuing items so a TV long-runner like Digimon
+  // BeatBreak counts toward "TV N" — the pill filter applies to continuing
+  // items, so its count should too. Dedupes by anilistId to avoid double-
+  // counting if a show is somehow in both lists.
+  const matchesQuery = (i: DiscoverItem) =>
+    !q ||
+    i.title.toLowerCase().includes(q) ||
+    (i.titleEnglish?.toLowerCase().includes(q) ?? false);
+  const mainIdsForCount = new Set(items.map((i) => i.anilistId));
+  const countables: DiscoverItem[] = [
+    ...items.filter(matchesQuery),
+    ...continuingItems.filter(
+      (i) => !mainIdsForCount.has(i.anilistId) && matchesQuery(i),
+    ),
+  ];
   const formatCounts = new Map<string, number>();
-  for (const i of searchScoped) {
+  for (const i of countables) {
     if (!i.format) continue;
     formatCounts.set(i.format, (formatCounts.get(i.format) ?? 0) + 1);
   }
@@ -223,8 +311,9 @@ export function DiscoverPage({
     MUSIC: 'Music',
   };
   // "Block" assignment for the card grid — formats in the same block render
-  // back-to-back without a horizontal separator. Currently TV + ONA share
-  // a block; everything else is its own block.
+  // back-to-back without a horizontal separator. CONTINUING_BLOCK is a
+  // synthetic block for long-runners from previous seasons (see
+  // continuingItems) and sits at the bottom of the grid.
   const FORMAT_BLOCK: Record<string, number> = {
     TV: 0,
     ONA: 0,
@@ -233,6 +322,7 @@ export function DiscoverPage({
     OVA: 2,
     TV_SHORT: 3,
   };
+  const CONTINUING_BLOCK = 4;
   // Section heading label shown on the separator line for each block (except
   // the first, which has no separator). Plural by convention since each
   // block holds many shows. The TV/ONA block has no heading.
@@ -255,26 +345,50 @@ export function DiscoverPage({
     );
   };
 
-  // Card-grid ordering: sort visibleItems by FORMAT_BLOCK (unknown formats
-  // land at the end). TV + ONA share block 0 so they interleave naturally
-  // in AniList's popularity-desc order — TV doesn't all come before ONA.
-  // Stable sort preserves that ordering within each block.
-  const orderedItems = [...visibleItems].sort((a, b) => {
-    const ra = FORMAT_BLOCK[a.format ?? ''] ?? Number.MAX_SAFE_INTEGER;
-    const rb = FORMAT_BLOCK[b.format ?? ''] ?? Number.MAX_SAFE_INTEGER;
-    return ra - rb;
+  // Continuing items: long-runners from previous seasons that are still
+  // airing now. Dedupe against the main items list (a show might appear
+  // in both if AniList's season metadata mis-categorizes it) and apply the
+  // same search + format filters so toggles compose predictably.
+  const mainIds = new Set(items.map((i) => i.anilistId));
+  const filteredContinuing = continuingItems.filter((i) => {
+    if (mainIds.has(i.anilistId)) return false;
+    if (formatFilterActive && (!i.format || !selectedFormats.includes(i.format))) {
+      return false;
+    }
+    if (q) {
+      const titleHit = i.title.toLowerCase().includes(q);
+      const engHit = i.titleEnglish?.toLowerCase().includes(q) ?? false;
+      if (!titleHit && !engHit) return false;
+    }
+    return true;
   });
+  // Set of anilistIds that should render in the Continuing block. Cheaper
+  // than per-item flag passing into the sort.
+  const continuingIds = new Set(filteredContinuing.map((i) => i.anilistId));
+
+  // Card-grid ordering: sort visibleItems + continuing by block. Continuing
+  // items override their format's block with CONTINUING_BLOCK (1). TV + ONA
+  // share block 0 so they interleave naturally in AniList's popularity-desc
+  // order. Stable sort preserves that within each block.
+  const allItems = [...visibleItems, ...filteredContinuing];
+  function blockOf(item: DiscoverItem): number {
+    if (continuingIds.has(item.anilistId)) return CONTINUING_BLOCK;
+    return FORMAT_BLOCK[item.format ?? ''] ?? Number.MAX_SAFE_INTEGER;
+  }
+  const orderedItems = [...allItems].sort((a, b) => blockOf(a) - blockOf(b));
 
   // Collect which formats actually appear in each block. Lets the section
   // heading read "Specials & OVAs" only when both are present in the
   // current results — falls back to just "Specials" or just "OVAs" if not.
   const blockFormats = new Map<number, Set<string>>();
   for (const item of orderedItems) {
-    const block = FORMAT_BLOCK[item.format ?? ''] ?? 99;
+    const block = blockOf(item);
     if (!blockFormats.has(block)) blockFormats.set(block, new Set());
     blockFormats.get(block)!.add(item.format ?? '');
   }
   function blockHeading(block: number): string {
+    // Continuing block has a fixed label — it's not a format-based grouping.
+    if (block === CONTINUING_BLOCK) return 'Continuing';
     const formats = Array.from(blockFormats.get(block) ?? []);
     // Stable label ordering: follow FORMAT_ORDER position so "Specials &
     // OVAs" stays in that order regardless of which one appeared first
@@ -392,7 +506,7 @@ export function DiscoverPage({
             </div>
           </div>
 
-          {formatList.length > 0 && (
+          {(formatList.length > 0 || filteredContinuing.length > 0) && (
             <div className="flex items-start gap-3">
               <label className="text-xs text-zinc-400 font-semibold uppercase tracking-wide pt-1.5">
                 Format
@@ -419,10 +533,36 @@ export function DiscoverPage({
                     </button>
                   );
                 })}
-                {selectedFormats.length > 0 && (
+                {/* Continuing-only pill — last in the row, mirrors the
+                    Continuing block's position at the bottom of the grid.
+                    Distinct cyan tint sets it apart from the indigo format
+                    pills since it's a section filter, not a format. */}
+                {filteredContinuing.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setSelectedFormats([])}
+                    onClick={() => setContinuingOnly((v) => !v)}
+                    className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                      continuingOnly
+                        ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/60'
+                        : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-cyan-500/40'
+                    }`}
+                    title="Show only the Continuing block"
+                  >
+                    Continuing{' '}
+                    <span
+                      className={continuingOnly ? 'opacity-70' : 'text-zinc-500'}
+                    >
+                      {filteredContinuing.length}
+                    </span>
+                  </button>
+                )}
+                {(selectedFormats.length > 0 || continuingOnly) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFormats([]);
+                      setContinuingOnly(false);
+                    }}
                     className="text-[11px] text-zinc-500 hover:text-zinc-300 px-2 py-1"
                   >
                     Clear
@@ -463,27 +603,32 @@ export function DiscoverPage({
         </div>
       )}
 
-      {!loading && items.length === 0 && !error && (
-        <p className="text-center text-sm text-zinc-500 py-24">No results.</p>
-      )}
+      {!loading &&
+        items.length === 0 &&
+        filteredContinuing.length === 0 &&
+        !error && (
+          <p className="text-center text-sm text-zinc-500 py-24">No results.</p>
+        )}
 
-      {items.length > 0 && visibleItems.length === 0 && (
-        <p className="text-center text-sm text-zinc-500 py-12">
-          No titles match &quot;{search.trim()}&quot;.
-        </p>
-      )}
+      {items.length > 0 &&
+        visibleItems.length === 0 &&
+        filteredContinuing.length === 0 && (
+          <p className="text-center text-sm text-zinc-500 py-12">
+            No titles match &quot;{search.trim()}&quot;.
+          </p>
+        )}
 
-      {visibleItems.length > 0 && (
+      {orderedItems.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {(() => {
             // Walk orderedItems and inject a full-width separator whenever
-            // the FORMAT_BLOCK changes. TV (block 0) and ONA (block 0) share
-            // a block so there's no line between them.
+            // the block changes. TV (block 0) and ONA (block 0) share
+            // a block so there's no line between them. Continuing items
+            // override their format's block to CONTINUING_BLOCK.
             const nodes: React.ReactNode[] = [];
             let prevBlock: number | null = null;
             for (const item of orderedItems) {
-              const fmt = item.format ?? '';
-              const block = FORMAT_BLOCK[fmt] ?? 99;
+              const block = blockOf(item);
               if (prevBlock !== null && block !== prevBlock) {
                 // Labeled separator: section heading on the left, a thin
                 // line stretching to the right edge of the grid. Heading
