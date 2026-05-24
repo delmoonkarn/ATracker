@@ -12,7 +12,7 @@ Personal anime tracker — schedule your watch list by season, discover what's a
 | Styling      | Tailwind CSS                                            |
 | Storage      | SQLite via `better-sqlite3` — `data/anime-tracker.db`   |
 | Spreadsheets | ExcelJS (`.xlsx` import / export)                       |
-| External API | [AniList](https://anilist.co/) GraphQL (no key required) |
+| External API | [AniList](https://anilist.co/) GraphQL |
 
 ## Run it
 
@@ -42,7 +42,7 @@ Or double-click **`run.bat`**.
 - **Behind alert** — bright orange shine on actively-watching shows you're behind on; dropped shows dim out
 - **Auto-fills day + air-time** from AniList when adding a new show; fields remain editable
 
-### Discover by Season
+### Discover
 - Pick any Winter / Spring / Summer / Fall + year, or **"— All year —"** to drop the season filter and browse the whole year
 - Tag filter, search within results, LRU cache of the last 4 `{season, year, tags}` combos
 
@@ -50,18 +50,10 @@ Or double-click **`run.bat`**.
 - Favorites + Interested sections, sort by released date / added date / title / score, tag filter
 - Full tag list cached per entry (card shows top 5); enrichment job backfills older entries
 
-### H
-- Separate H discovery page with date + popularity sorts, tag filter, search
-- Separate H favorites store (independent of Collection)
-
 ### Import / Export
 - **`.xlsx`** — schedule and collection each have their own format with `=IMAGE()` formulas, Thai-pastel day colors, and full watch-progress round-trip (status / watched / total columns)
 - **`.json`** — lossless scope-bounded backup for Schedule and Collection (faster than xlsx; preserves every field). Restore merges new entries and updates matching ones — never deletes
 - xlsx bulk-bind hits AniList to enrich imported titles with cover, episodes, and airing data automatically
-
-### Reliability
-- AniList outages surface a clear message in the search dropdown (`"AniList API is currently disabled by AniList…"`) instead of the browser's generic *Failed to fetch*
-- Background airing refresh + metadata backfill are idempotent and gated to the current season to keep API calls modest
 
 ## Project layout
 
