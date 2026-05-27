@@ -132,7 +132,6 @@ export function SeasonSelector({
           className="flex items-center gap-2 shrink-0 group"
           title="Go to current season's schedule"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
             alt="Anime Tracker"

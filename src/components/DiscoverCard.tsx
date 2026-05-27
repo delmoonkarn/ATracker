@@ -114,7 +114,6 @@ export function DiscoverCard({
         className="block w-full aspect-[2/3] bg-zinc-800 relative"
       >
         {item.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.imageUrl}
             alt={item.title}

@@ -441,7 +441,6 @@ export function AnimeCard({
         className="block aspect-[2/3] overflow-hidden bg-zinc-800 relative"
       >
         {entry.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={entry.imageUrl}
             alt={entry.title}

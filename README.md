@@ -56,17 +56,7 @@ data/                # SQLite DB lives here (gitignored)
 
 ## Storage
 
-<<<<<<< Updated upstream
 Everything you add — schedule, collection, favorites, discover cache, tags, prefs — is stored in `data/anime-tracker.db`. Schema is created and migrated automatically on first run.
-=======
-<<<<<<< HEAD
-`data/anime-tracker.db` — same SQLite file as v1.x. To migrate from the
-old project: copy the `data/` folder over. Schema migrations run on
-first launch.
-=======
-Everything you add — schedule, collection, favorites, discover cache, tags, prefs — is stored in `data/anime-tracker.db`. Schema is created and migrated automatically on first run.
->>>>>>> a404db901744c861da46017312f2e458ddfc9a45
->>>>>>> Stashed changes
 
 ## Why this rewrite
 

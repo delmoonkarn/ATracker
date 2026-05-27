@@ -135,7 +135,6 @@ export function AddToCollectionModal({ open, onClose, onAdd, isInCollection }: P
             const added = isInCollection(m.id);
             return (
               <li key={m.id} className="flex items-center gap-3 p-3 hover:bg-zinc-800/40">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={m.coverImage.medium}
                   alt={title}

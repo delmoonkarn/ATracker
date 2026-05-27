@@ -291,7 +291,6 @@ export function AddAnimeModal({
                           }}
                           className="w-full flex items-center gap-3 p-2 hover:bg-zinc-800/60 text-left"
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={r.coverImage.medium}
                             alt={main}
@@ -317,7 +316,6 @@ export function AddAnimeModal({
 
           {selected && (
             <div className="flex items-center gap-3 p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={selected.imageUrl}
                 alt={selected.title}

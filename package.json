@@ -8,7 +8,6 @@
     "build": "tsc --noEmit && vite build && node scripts/build-server.mjs",
     "preview": "vite preview",
     "start": "node dist-server/index.cjs",
-    "lint": "eslint src server",
     "build-exe": "node scripts/build-exe.mjs"
   },
   "dependencies": {
