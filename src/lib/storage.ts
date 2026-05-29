@@ -9,14 +9,14 @@ import type {
 
 // Storage layer notes
 // -------------------
-// Persistence lives in real files on disk under `data/<key>.json`, served by
-// the Next.js API route at /api/storage/[key]. This module is the client-side
+// Persistence lives in a SQLite DB on disk, served by the Hono route at
+// /api/storage/:key (see server/index.ts). This module is the client-side
 // adapter: it does async reads via fetch and debounces writes so rapid state
 // changes don't fire one HTTP request per change.
 //
 // On first load each key tries the API; if empty, it looks for a matching
-// legacy localStorage entry and migrates it to the file (then deletes the
-// localStorage key). This means users with prior data won't lose it.
+// legacy localStorage entry and migrates it (then deletes the localStorage
+// key). This means users with prior data won't lose it.
 
 const LEGACY_KEYS: Record<StorageKey, string> = {
   state: 'anime-tracker-state-v2',

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { ArrowLeft, Flame, Heart, Search, X } from 'lucide-react';
 import type { HFavoriteEntry } from '@/lib/types';

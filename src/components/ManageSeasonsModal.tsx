@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Trash2, X } from 'lucide-react';
 import type { Season } from '@/lib/types';

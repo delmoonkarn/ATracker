@@ -12,7 +12,6 @@ import { CollectionPage } from '@/components/CollectionPage';
 import { useConfirm } from '@/components/ConfirmDialog';
 import type {
   AnimeEntry,
-  AnimeSeason,
   AppState,
   AppView,
   CollectionEntry,

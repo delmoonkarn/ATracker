@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { Check, Loader2, Plus, Search, X } from 'lucide-react';
 import type { AnilistMedia, DiscoverItem } from '@/lib/types';

@@ -1,6 +1,5 @@
-
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, RefreshCw, Search, Sparkles, X } from 'lucide-react';
+import { RefreshCw, Search, Sparkles, X } from 'lucide-react';
 import type {
   AnilistTag,
   AnimeSeason,

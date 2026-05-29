@@ -1,4 +1,4 @@
-// Hono server — replaces the Next.js API routes from the old project.
+// Hono server.
 //
 // Dev: runs on :3001, Vite proxies /api/* here from :5173.
 // Prod (`npm run build` then `npm start`): also serves the built static

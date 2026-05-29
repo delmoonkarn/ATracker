@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Loader2, RefreshCcw, Search, X } from 'lucide-react';
 import type { AnilistMedia, AnimeEntry, DayOfWeek } from '@/lib/types';

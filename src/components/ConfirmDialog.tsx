@@ -1,4 +1,3 @@
-
 import {
   createContext,
   useCallback,
@@ -128,7 +127,7 @@ function Dialog({
           <div
             className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${iconWrap}`}
           >
-            <Icon className="w-4.5 h-4.5" />
+            <Icon className="w-4 h-4" />
           </div>
           <h2 className="text-base font-semibold flex-1 pt-1.5">{opts.title}</h2>
           <button

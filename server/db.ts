@@ -24,9 +24,8 @@ const DB_PATH = join(DATA_DIR, 'anime-tracker.db');
 
 mkdirSync(DATA_DIR, { recursive: true });
 
-// Reuse one connection per process (Next.js dev re-evaluates this file on
-// HMR; the module cache keeps the connection alive across renders within a
-// single dev session).
+// Reuse one connection per process. The globalThis cache survives `tsx`
+// watch-mode re-imports so we don't pile up connections during dev.
 const g = globalThis as unknown as { __animeTrackerDb?: Database.Database };
 const db: Database.Database = g.__animeTrackerDb ?? new Database(DB_PATH);
 g.__animeTrackerDb = db;
@@ -752,26 +751,22 @@ const LEGACY_JSON: Record<string, DbKey> = {
   'hentai-prefs.json': 'h-prefs',
 };
 
-if (!g.__animeTrackerDb || true) {
-  // Run on first import only by leveraging the module cache.
-  // (The 'true' guard is defensive — schema is created via IF NOT EXISTS so
-  // re-running is idempotent. Migration is idempotent because we rename
-  // legacy files with .imported once successfully ingested.)
-  for (const [file, key] of Object.entries(LEGACY_JSON)) {
-    const path = join(DATA_DIR, file);
-    if (!existsSync(path)) continue;
-    try {
-      const text = readFileSync(path, 'utf-8');
-      if (!text || text === 'null') {
-        renameSync(path, path + '.imported');
-        continue;
-      }
-      const data = JSON.parse(text);
-      writeByKey(key, data);
+// Idempotent: successfully-ingested files are renamed to .imported, so a
+// second pass on the same dataset is a no-op.
+for (const [file, key] of Object.entries(LEGACY_JSON)) {
+  const path = join(DATA_DIR, file);
+  if (!existsSync(path)) continue;
+  try {
+    const text = readFileSync(path, 'utf-8');
+    if (!text || text === 'null') {
       renameSync(path, path + '.imported');
-      console.info(`[db] Imported legacy ${file} into anime-tracker.db`);
-    } catch (err) {
-      console.warn(`[db] Failed to migrate ${file}:`, err);
+      continue;
     }
+    const data = JSON.parse(text);
+    writeByKey(key, data);
+    renameSync(path, path + '.imported');
+    console.info(`[db] Imported legacy ${file} into anime-tracker.db`);
+  } catch (err) {
+    console.warn(`[db] Failed to migrate ${file}:`, err);
   }
 }

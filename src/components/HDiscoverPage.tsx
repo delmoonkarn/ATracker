@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Flame, Heart, Loader2, Search, X } from 'lucide-react';
 import type {

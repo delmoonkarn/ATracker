@@ -1,4 +1,3 @@
-
 import { Sparkles } from 'lucide-react';
 
 interface Props {
